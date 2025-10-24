@@ -1,5 +1,109 @@
-GeminiForge - AI 內容工具箱GeminiForge 是一個基於 Google Gemini API 打造的 AI 內容生成工具套件。它提供了一個乾淨、明亮、滿版的雙欄式介面，讓使用者可以專注於內容創作。此專案使用前端（HTML/CSS/jQuery）處理介面邏輯，並透過一個 PHP 後端代理來安全地呼叫 Gemini API。✨ 主要功能本工具箱目前包含以下核心工具：AI 文章改寫 (Content Improver)多種輸入方式：支援透過「檔案上傳」、「網址輸入」或「直接貼上文字」來提供原文。前端檔案解析：使用 mammoth.js 在瀏覽器端直接讀取 .docx 檔案內容，並使用 pdf.js 實驗性讀取 .pdf 內容。多元改寫模式：提供「重寫」、「縮短」、「增長」等不同形式。自訂風格：除了預設風格（專業、幽默等），使用者還可透過「+ 新增」按鈕來定義自己的寫作風格。AI 文章產生器 (Article Generator)結構化輸入：透過輸入「標題」、「核心關鍵字」（會轉換為標籤）、「目標受眾」和「生成長度」來精確控制產出。網路即時資訊：可選取「使用網路即時資訊」，讓 AI 透過 Google Search 抓取最新資料來撰寫文章。自訂風格：同樣支援自訂風格按鈕。FB 廣告貼文 (Facebook Post Generator)專為社群設計：生成適用於 Facebook 的「廣告貼文」或「一般貼文」。完整參數：可定義「貼文主題」、「目標受眾」、「長度」和「風格」。進階選項：支援「包含圖片提示」（要求 AI 生成 DALL-E 或 Midjourney 提示詞）和「網路即時資訊」。🎨 介面與設計明亮漸層風格：採用淺色系 (#f8f9fa) 搭配漸層背景，提供清晰、專業的視覺體驗。字體：優先使用「微軟正黑體」(Microsoft JhengHei) 以獲得最佳的繁體中文閱讀效果，並輔以 Inter 和系統字體。滿版佈局：在桌面瀏覽器上，採用左側固定工具列、右側內容滾動區的滿版設計。響應式設計：在行動裝置上會自動切換為單欄佈局。🛠️ 技術棧前端 (Client-Side):HTML5CSS3 (使用 CSS 變數)jQuery 3.7.1mammoth.js (用於瀏覽器端 .docx 檔案解析)pdf.js (用於瀏覽器端 .pdf 檔案解析)後端 (Server-Side):PHP (cURL)AI API:Google Gemini API (透過後端 api.php 代理呼叫)🚀 如何架設與使用1. 後端設定 (api.php)上傳伺服器：將 api.php 檔案上傳到任何支援 PHP 7.4+ 並已啟用 curl 擴充功能的網頁伺服器。(選用) Composer 依賴：如果您未來要啟用 api.php 中的 PDF 或 URL 抓取功能，您需要在伺服器上透過 Composer 安裝對應的函式庫 (例如 smalot/pdfparser)。目前版本 (api.php) 依賴前端傳送所有文字，故此步驟暫時不需要。2. 前端設定 (index.html)設定 API 路徑：使用文字編輯器打開 index.html。找到檔案底部的 <script> 區塊。找到 fetch("api.php", { ... }) 這一行（在 $mainActionButton 的點擊事件中）。將 "api.php" 替換為您在步驟 1 中上傳的 api.php 的完整公開網址。// 範例：
+GeminiForge - AI 內容工具箱
+
+GeminiForge 是一個基於 Google Gemini API 打造的 AI 內容生成工具套件。它提供了一個乾淨、明亮、滿版的雙欄式介面，讓使用者可以專注於內容創作。此專案使用前端（HTML/CSS/jQuery）處理介面邏輯，並透過一個 PHP 後端代理來安全地呼叫 Gemini API。
+
+✨ 主要功能
+
+本工具箱目前包含以下核心工具：
+
+AI 文章改寫 (Content Improver)
+
+多種輸入方式：支援透過「檔案上傳」、「網址輸入」或「直接貼上文字」來提供原文。
+
+前端檔案解析：使用 mammoth.js 在瀏覽器端直接讀取 .docx 檔案內容，並使用 pdf.js 實驗性讀取 .pdf 內容。
+
+多元改寫模式：提供「重寫」、「縮短」、「增長」等不同形式。
+
+自訂風格：除了預設風格（專業、幽默等），使用者還可透過「+ 新增」按鈕來定義自己的寫作風格。
+
+AI 文章產生器 (Article Generator)
+
+結構化輸入：透過輸入「標題」、「核心關鍵字」（會轉換為標籤）、「目標受眾」和「生成長度」來精確控制產出。
+
+網路即時資訊：可選取「使用網路即時資訊」，讓 AI 透過 Google Search 抓取最新資料來撰寫文章。
+
+自訂風格：同樣支援自訂風格按鈕。
+
+FB 廣告貼文 (Facebook Post Generator)
+
+專為社群設計：生成適用於 Facebook 的「廣告貼文」或「一般貼文」。
+
+完整參數：可定義「貼文主題」、「目標受眾」、「長度」和「風格」。
+
+進階選項：支援「包含圖片提示」（要求 AI 生成 DALL-E 或 Midjourney 提示詞）和「網路即時資訊」。
+
+🎨 介面與設計
+
+明亮漸層風格：採用淺色系 (#f8f9fa) 搭配漸層背景，提供清晰、專業的視覺體驗。
+
+字體：優先使用「微軟正黑體」(Microsoft JhengHei) 以獲得最佳的繁體中文閱讀效果，並輔以 Inter 和系統字體。
+
+滿版佈局：在桌面瀏覽器上，採用左側固定工具列、右側內容滾動區的滿版設計。
+
+響應式設計：在行動裝置上會自動切換為單欄佈局。
+
+🛠️ 技術棧
+
+前端 (Client-Side):
+
+HTML5
+
+CSS3 (使用 CSS 變數)
+
+jQuery 3.7.1
+
+mammoth.js (用於瀏覽器端 .docx 檔案解析)
+
+pdf.js (用於瀏覽器端 .pdf 檔案解析)
+
+後端 (Server-Side):
+
+PHP (cURL)
+
+AI API:
+
+Google Gemini API (透過後端 api.php 代理呼叫)
+
+🚀 如何架設與使用
+
+1. 後端設定 (api.php)
+
+上傳伺服器：將 api.php 檔案上傳到任何支援 PHP 7.4+ 並已啟用 curl 擴充功能的網頁伺服器。
+
+(選用) Composer 依賴：
+
+如果您未來要啟用 api.php 中的 PDF 或 URL 抓取功能，您需要在伺服器上透過 Composer 安裝對應的函式庫 (例如 smalot/pdfparser)。
+
+目前版本 (api.php) 依賴前端傳送所有文字，故此步驟暫時不需要。
+
+2. 前端設定 (index.html)
+
+設定 API 路徑：使用文字編輯器打開 index.html。
+
+找到檔案底部的 <script> 區塊。
+
+找到 fetch("api.php", { ... }) 這一行（在 $mainActionButton 的點擊事件中）。
+
+將 "api.php" 替換為您在步驟 1 中上傳的 api.php 的完整公開網址。
+
+// 範例：
 const response = await fetch("[https://your-domain.com/api/api.php](https://your-domain.com/api/api.php)", { 
     // ...
 });
-完成！ 您現在可以將 index.html 檔案託管在任何地方（例如 GitHub Pages、Vercel），或直接在本地瀏覽器中打開。3. 開始使用在瀏覽器中打開 index.html。點擊左下角的「設定」(⚙️) 按鈕。輸入您自己的 Gemini API Key。(推薦) 勾選「儲存此 API Key 到瀏覽器」，以便下次使用。儲存設定。從左側工具列選擇您要使用的工具（例如「AI 文章產生器」），填寫欄位，然後點擊主執行按鈕！
+
+
+完成！ 您現在可以將 index.html 檔案託管在任何地方（例如 GitHub Pages、Vercel），或直接在本地瀏覽器中打開。
+
+3. 開始使用
+
+在瀏覽器中打開 index.html。
+
+點擊左下角的「設定」(⚙️) 按鈕。
+
+輸入您自己的 Gemini API Key。
+
+(推薦) 勾選「儲存此 API Key 到瀏覽器」，以便下次使用。
+
+儲存設定。
+
+從左側工具列選擇您要使用的工具（例如「AI 文章產生器」），填寫欄位，然後點擊主執行按鈕！
