@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeminiForge - AI 工具箱</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <!-- Mammoth.js for DOCX reading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- pdf.js (Core library) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <!-- pdf.js Worker (Important Note: Loading worker from CDN might be restricted in some environments) -->
+    <script>
+        // Set worker source explicitly (adjust path if needed, though CDN might not work reliably for workers)
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js`;
+        } else {
+             console.warn("pdf.js library not loaded correctly.");
+        }
+    </script>
+
+
+    <style>
+      /* 1. "ryd" 設計風格 - 淺色優先 + 字體/漸層 */
+      :root {
+        /* ▼▼▼ 字體更新 ▼▼▼ */
+        --ryd-font-family: "Microsoft JhengHei UI", "Microsoft JhengHei", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        /* ▲▲▲ */
+        --ryd-bg: #f8f9fa;
+        --ryd-surface: #ffffff;
+        --ryd-card: #ffffff;
+        --ryd-card-border: rgba(222, 226, 230, 0.6); /* 邊框調淡 */
+        --ryd-text-primary: #181818;
+        --ryd-text-secondary: rgba(24, 24, 24, 0.75); /* 次要文字加深一點 */
+        --ryd-muted: rgba(108, 117, 125, 0.8); /* 提示文字調整 */
+        --ryd-shadow: 0 6px 16px rgba(0, 0, 0, 0.08); /* Section 卡片陰影調整 */
+        --ryd-accent: #007BFF;
+        --ryd-accent-strong: #0056b3;
+        --ryd-radius-lg: 32px;
+        --ryd-radius-md: 12px; /* 圓角調整 */
+        --ryd-radius-sm: 8px;  /* 圓角調整 */
+        --ryd-gap: clamp(1.5rem, 3vw, 2rem);
+        font-family: var(--ryd-font-family); /* 使用字體變數 */
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        /* ▼▼▼ 背景漸層 ▼▼▼ */
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        /* ▲▲▲ */
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 0;
+        color: var(--ryd-text-primary);
+        box-sizing: border-box;
+        font-family: var(--ryd-font-family); /* 套用字體 */
+        font-weight: 400; /* 設定基礎字重 */
+      }
+
+      .ryd-changelog {
+        width: 100%;
+        min-height: 100vh;
+        background: none;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        position: relative;
+        overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      /* 5. 兩欄式佈局 (滿版) */
+      .ryd-changelog__main {
+        position: relative;
+        margin: 0;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 0;
+        align-items: flex-start;
+        min-height: 100vh;
+      }
+      .ryd-content-area {
+        display: flex;
+        flex-direction: column;
+        gap: var(--ryd-gap);
+        min-width: 0;
+        padding: clamp(1.5rem, 4vw, 3rem);
+        height: 100vh;
+        overflow-y: auto;
+        box-sizing: border-box;
+        background: #ffffff;
+      }
+      .tool-container section + section { margin-top: var(--ryd-gap); }
+      .ryd-toolbar {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        /* ▼▼▼ 工具列漸層 ▼▼▼ */
+        background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+        /* ▲▲▲ */
+        padding: clamp(1.5rem, 4vw, 2.5rem);
+        height: 100vh;
+        border-right: 1px solid #dee2e6;
+        box-sizing: border-box;
+        overflow-y: auto;
+      }
+
+      /* Hero 區域 */
+      .ryd-changelog__hero {
+         padding: 0; padding-bottom: 1.5rem; border-bottom: 1px solid #dee2e6;
+         background: none; gap: 0.6rem;
+      }
+       .ryd-changelog__title {
+           font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+           font-weight: 700; /* 加粗 */
+        }
+       .ryd-changelog__subtitle { font-size: clamp(0.9rem, 1.8vw, 1rem); max-width: none; color: var(--ryd-muted);}
+       .ryd-changelog__badge {
+           padding: 0.3rem 0.75rem; font-size: 0.75rem;
+           color: var(--ryd-accent-strong); background: rgba(0, 123, 255, 0.1);
+           font-weight: 600; /* 加粗 */
+        }
+
+
+      /* 工具列按鈕 */
+      .ryd-tool-button {
+          display: flex; align-items: center; gap: 0.75rem; width: 100%;
+          padding: 0.7rem 1rem; font-size: 0.9rem;
+          font-weight: 500; /* 標準字重 */
+          color: #495057;
+          background: transparent; border: 1px solid transparent; border-radius: var(--ryd-radius-sm);
+          cursor: pointer; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+          box-sizing: border-box; text-align: left;
+      }
+      .ryd-tool-button:hover { background: #ffffff; color: var(--ryd-text-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
+      .ryd-tool-button.active {
+          background: rgba(0, 123, 255, 0.08); color: var(--ryd-accent-strong);
+          font-weight: 700; /* Active 加粗 */
+          box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+      }
+      .ryd-tool-button svg { width: 1.1em; height: 1.1em; flex-shrink: 0; color: #6c757d; }
+      .ryd-tool-button.active svg { color: var(--ryd-accent-strong); }
+
+      .ryd-toolbar-divider { height: 1px; background: #dee2e6; margin: 0.5rem 0; }
+
+      /* 主要操作按鈕 */
+      .ryd-changelog__actions { margin-top: auto; padding-top: 1rem; border-top: 1px solid #dee2e6;}
+
+      .ryd-button {
+        border: none; border-radius: var(--ryd-radius-md); padding: 0.8rem 1.5rem;
+        font-size: 0.95rem;
+        font-weight: 700; /* 加粗 */
+        letter-spacing: 0.01em; cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+        width: 100%; box-sizing: border-box;
+      }
+      .ryd-button--primary {
+        background: linear-gradient(135deg, var(--ryd-accent), var(--ryd-accent-strong)); color: #ffffff;
+        box-shadow: 0 6px 12px rgba(0, 123, 255, 0.25);
+      }
+      .ryd-button--primary:hover { transform: translateY(-2px); box-shadow: 0 10px 18px rgba(0, 123, 255, 0.35); }
+      .ryd-button--outline {
+          background: transparent; border: 1px solid var(--ryd-accent); color: var(--ryd-accent);
+          width: auto; font-weight: 600; /* Outline 按鈕也加粗 */
+      }
+      .ryd-button--outline:hover { background: rgba(0, 123, 255, 0.08); }
+      .ryd-button:disabled { background: #e9ecef; color: #adb5bd; cursor: not-allowed; transform: none; box-shadow: none; }
+
+      /* 2. 自訂表單風格 */
+      .ryd-form-group { display: flex; flex-direction: column; gap: 0.5rem;padding-top:15px }
+      .ryd-form-group label {
+          font-weight: 700; /* Label 加粗 */
+          font-size: 0.85rem; color: #343a40; /* Label 顏色加深 */
+       }
+      .ryd-input, .ryd-select, .ryd-textarea {
+        background: #ffffff; border: 1px solid #ced4da; border-radius: var(--ryd-radius-sm);
+        padding: 0.75rem 1rem; font-size: 0.95rem; color: var(--ryd-text-primary);
+        font-family: var(--ryd-font-family); box-sizing: border-box;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .ryd-input:focus, .ryd-select:focus, .ryd-textarea:focus { border-color: var(--ryd-accent); box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15); outline: none; }
+      .ryd-input[type="file"] { padding-top: 0.6rem; padding-bottom: 0.6rem; }
+      .ryd-input[type="file"]::file-selector-button {
+        background: rgba(0, 123, 255, 0.1); color: var(--ryd-accent); border: 1px solid rgba(0, 123, 255, 0.3);
+        border-radius: var(--ryd-radius-sm); padding: 0.3rem 0.7rem; font-size: 0.85rem;
+        font-weight: 500; cursor: pointer; margin-right: 0.75rem; transition: background 0.2s ease;
+      }
+      .ryd-input[type="file"]::file-selector-button:hover { background: rgba(0, 123, 255, 0.2); }
+      .ryd-textarea { min-height: 150px; resize: vertical; }
+      #rewriteOutput { min-height: 25vh; max-height: 40vh; background: #f8f9fa; }
+      .ryd-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23007bff' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; }
+
+      /* 3. Alert 和 Spinner 風格 */
+      .ryd-alert { background: rgba(220, 53, 69, 0.08); color: #721c24; border: 1px solid rgba(220, 53, 69, 0.2); padding: 0.75rem 1rem; border-radius: var(--ryd-radius-sm); font-size: 0.9rem; font-weight: 500; display: none; }
+      .ryd-alert.success { background-color: rgba(40, 167, 69, 0.08); border-color: rgba(40, 167, 69, 0.2); color: #155724; }
+      .ryd-alert.warning { background-color: rgba(255, 193, 7, 0.08); border-color: rgba(255, 193, 7, 0.2); color: #856404; }
+      .ryd-alert.info { background-color: rgba(0, 123, 255, 0.08); border-color: rgba(0, 123, 255, 0.2); color: #004085; }
+      .ryd-alert:not(:empty) { display: block; }
+      .ryd-spinner { display: none; width: 1.1em; height: 1.1em; border: 2px solid currentColor; border-bottom-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* 4. 功能性樣式 */
+      .ryd-checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin-top: -0.25rem; cursor: pointer; }
+      .ryd-checkbox-group input[type="checkbox"] { display: none; }
+      .ryd-checkbox-group .ryd-checkbox { width: 1.1em; height: 1.1em; background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s ease, border-color 0.2s ease; }
+      .ryd-checkbox-group .ryd-checkbox svg { display: none; width: 0.7em; height: 0.7em; color: var(--ryd-accent); }
+      .ryd-checkbox-group input[type="checkbox"]:checked + .ryd-checkbox { background-color: rgba(0, 123, 255, 0.1); border-color: var(--ryd-accent); }
+      .ryd-checkbox-group input[type="checkbox"]:checked + .ryd-checkbox svg { display: block; }
+      .ryd-checkbox-group label { font-size: 0.85rem; color: var(--ryd-muted); cursor: pointer; user-select: none; }
+
+      .ryd-section {
+          background: #ffffff; border: 1px solid #e9ecef; box-shadow: var(--ryd-shadow);
+          border-radius: var(--ryd-radius-md); padding: clamp(1.5rem, 3vw, 2rem);
+          /* ▼▼▼ Section 漸層背景 ▼▼▼ */
+          background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 150%);
+          /* ▲▲▲ */
+        }
+      .ryd-section__header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+      .ryd-section__heading { font-size: clamp(1.1rem, 1.8vw, 1.3rem); font-weight: 700; margin: 0; } /* 區塊標題加粗 */
+      .ryd-icon-button { background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.1); padding: 0.4rem 0.5rem; border-radius: 999px; cursor: pointer; transition: background 0.2s ease, color 0.2s ease; line-height: 0;}
+      .ryd-icon-button:hover { background: rgba(0, 123, 255, 0.1); color: var(--ryd-accent); }
+      .ryd-icon-button svg { width: 0.9em; height: 0.9em; }
+      .ryd-icon-button .icon-check { display: none; }
+
+      .ryd-list { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 0.5rem; color: var(--ryd-text-secondary); line-height: 1.6; font-size: 0.95rem;}
+      .ryd-list li { position: relative; padding-left: 1.2rem; }
+      .ryd-list li::before { content: "•"; position: absolute; left: 0; top: 0; color: var(--ryd-accent); font-weight: 700; font-size: 1rem; line-height: 1.6;}
+
+      /* 按鈕群組 & Toggle 按鈕 */
+      .ryd-button-group { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      .ryd-button-group .ryd-button--toggle { background: #f8f9fa; border: 1px solid #dee2e6; color: #495057; padding: 0.4rem 0.8rem; font-size: 0.85rem; font-weight: 500; border-radius: var(--ryd-radius-sm); width: auto; cursor: pointer; transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; line-height: 1.4; display: inline-flex; align-items: center; gap: 0.25rem; }
+      .ryd-button-group .ryd-button--toggle:hover { background: #e9ecef; border-color: #ced4da; }
+      .ryd-button-group .ryd-button--toggle.active { background: rgba(0, 123, 255, 0.1); color: var(--ryd-accent-strong); border-color: rgba(0, 123, 255, 0.3); font-weight: 600; box-shadow: none; }
+      .ryd-button--add-tone { color: var(--ryd-accent); border-style: dashed; border-color: rgba(0, 123, 255, 0.4); background: transparent; font-weight: 500; }
+      .ryd-button--add-tone:hover { background: rgba(0, 123, 255, 0.05); border-color: var(--ryd-accent); color: var(--ryd-accent-strong); }
+      .ryd-button--add-tone svg { width: 0.8em; height: 0.8em; margin-right: 0.2rem;}
+
+      /* 6. 彈出視窗 (Modal) 樣式 */
+      .ryd-modal-backdrop { background: rgba(0, 0, 0, 0.4); position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1.5rem; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
+      .ryd-modal-backdrop.visible { opacity: 1; visibility: visible; transition: opacity 0.2s ease, visibility 0s linear 0s; }
+      .ryd-modal-content { background: #ffffff; border: 1px solid #dee2e6; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); border-radius: var(--ryd-radius-md); padding: clamp(1.5rem, 3vw, 2rem); width: min(100%, 600px); max-height: 90vh; display: flex; flex-direction: column; gap: 1.5rem; transform: scale(0.95) translateY(10px); opacity: 0; transition: transform 0.2s ease, opacity 0.2s ease; overflow-y: auto; }
+      .ryd-modal-backdrop.visible .ryd-modal-content { transform: scale(1) translateY(0); opacity: 1; }
+      .ryd-modal-content .ryd-changelog__actions { flex-direction: row; justify-content: flex-end; gap: 0.5rem; margin-top: 0; padding-top: 1rem; border-top: 1px solid #e9ecef; }
+      .ryd-modal-content .ryd-button { width: auto; }
+
+      /* 7. Tab Styles */
+      .ryd-tab-nav { display: flex; border-bottom: 1px solid #dee2e6; margin-bottom: 1.5rem; }
+      .ryd-tab-button { padding: 0.6rem 1rem; cursor: pointer; background: none; border: none; border-bottom: 3px solid transparent; font-weight: 500; font-size: 0.9rem; color: #6c757d; transition: color 0.2s ease, border-color 0.2s ease; margin-bottom: -1px; }
+      .ryd-tab-button:hover { color: var(--ryd-text-secondary); }
+      .ryd-tab-button.active { color: var(--ryd-accent); border-bottom-color: var(--ryd-accent); font-weight: 600; }
+      .ryd-tab-panel { display: none; }
+      .ryd-tab-panel.active { display: block; }
+
+      /* 8. Drag & Drop Zone Styles */
+      .ryd-drop-zone { border: 2px dashed #ced4da; border-radius: var(--ryd-radius-md); padding: 1.5rem; text-align: center; background-color: #f8f9fa; color: var(--ryd-muted); transition: border-color 0.2s ease, background-color 0.2s ease; cursor: pointer; }
+      .ryd-drop-zone.dragover { border-color: var(--ryd-accent); background-color: rgba(0, 123, 255, 0.05); }
+      .ryd-drop-zone p { margin: 0.5rem 0 0 0; font-size: 0.85rem; }
+      .ryd-drop-zone span { font-weight: 600; color: var(--ryd-accent); }
+      #ci_fileInputBrowse { display: none; }
+
+       /* 10. 響應式調整 */
+       @media (max-width: 960px) {
+         .ryd-changelog__main { grid-template-columns: 1fr; }
+         .ryd-toolbar { position: static; height: auto; border-right: none; border-bottom: 1px solid #dee2e6; flex-direction: column; padding: 1.5rem; }
+         .ryd-content-area { height: auto; padding: 1.5rem; }
+         .ryd-toolbar .ryd-tool-button { width: 100%; }
+       }
+
+       #ag_keywords_container {
+           /* 借用 .ryd-button-group 的樣式 */
+           display: flex;
+           flex-wrap: wrap;
+           gap: 0.5rem;
+           padding: 0.5rem; /* 增加一點內邊距 */
+           background: #f8f9fa; /* 淺色背景 */
+           border: 1px solid #dee2e6;
+           border-radius: var(--ryd-radius-sm);
+           min-height: 2.5rem; /* 至少保持一點高度 */
+           margin-bottom: 0.5rem; /* 與下方輸入框的間距 */
+       }
+       
+       .ryd-keyword-pill {
+           /* 借用 .ryd-button--toggle 的樣式 */
+           background: #e9ecef; border: 1px solid #ced4da; color: #495057;
+           padding: 0.4rem 0.6rem 0.4rem 0.8rem; /* 調整 padding */
+           font-size: 0.85rem; font-weight: 500; border-radius: var(--ryd-radius-sm);
+           width: auto;
+           display: inline-flex;
+           align-items: center;
+           gap: 0.5rem;
+           box-shadow: none;
+       }
+       
+       .ryd-keyword-pill-remove {
+           font-weight: 700;
+           font-size: 1.1rem;
+           color: var(--ryd-muted);
+           cursor: pointer;
+           transition: color 0.2s ease;
+           line-height: 1; /* 確保 '×' 垂直置中 */
+           padding-left: 0.25rem;
+       }
+       
+       .ryd-keyword-pill-remove:hover {
+           color: var(--ryd-accent);
+       }
+    </style>
+</head>
+<body>
+    <main class="ryd-changelog">
+      <div class="ryd-changelog__main">
+
+        <!-- 欄位 1: 左側工具列 -->
+        <aside class="ryd-toolbar" id="toolList">
+            <header class="ryd-changelog__hero">
+                <span class="ryd-changelog__badge">GeminiForge</span>
+                <h1 class="ryd-changelog__title">AI 工具箱</h1>
+                <p class="ryd-changelog__subtitle">
+                  由 Gemini 驅動的 AI 工具套件。
+                </p>
+            </header>
+
+            <!-- 工具列表 -->
+            <button class="ryd-tool-button active" data-tool="content-improver">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.44.85c.34 0 .62.28.62.62v13.06c0 .34-.28.62-.62.62h-2.13v-2.31h1.4v-1.1h-1.4v-1.09h1.4v-1.1h-1.4V6.5h1.4V5.4h-1.4V4.31h1.4V3.2h-1.4V.85h2.13zM2.56.85h2.13v2.35H3.29V4.3h1.4v1.1H3.29v1.09h1.4v1.1H3.29v1.1h1.4v1.1H3.29v1.1h1.4v2.31H2.56c-.34 0-.62-.28-.62-.62V1.47c0-.34.28-.62.62-.62z"/><path d="M6.55 3.1h2.9v1.1h-2.9V3.1zm0 3.3h2.9v1.1h-2.9V6.4zm0 3.3h2.9v1.1h-2.9V9.7zm0 3.3h2.9v1.1h-2.9V13z"/></svg>
+                AI 文章改寫
+            </button>
+
+            <!-- 文章產生器按鈕 -->
+            <button class="ryd-tool-button" data-tool="article-generator">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M0 2.5A1.5 1.5 0 0 1 1.5 1h11A1.5 1.5 0 0 1 14 2.5v10.5a.5.5 0 0 1-.854.354l-2.646-2.647a.5.5 0 0 0-.708 0L7.5 12.854V2.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0-.5.5v11.293l-1.146-1.147a.5.5 0 0 1-.354-.853V2.5z"/>
+                  <path d="M4.5 3a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zM4.5 5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zM4.5 7a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2z"/>
+                </svg>
+                AI 文章產生器
+            </button>
+
+            <!-- FB 廣告貼文按鈕 -->
+            <button class="ryd-tool-button" data-tool="fb-post">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0 0 3.604 0 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/>
+                </svg>
+                FB 廣告貼文
+            </button>
+
+            <div class="ryd-toolbar-divider"></div>
+
+            <!-- 設定按鈕 -->
+            <button class="ryd-tool-button" id="settingsBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/><path d="M9.796 1.343c.137-.246.395-.42.69-.47l.873-.127c.306-.044.618.06.842.286l.643.641c.227.226.328.537.286.843l-.127.873c-.05.295-.224.552-.47.69l-.873.127c-.306.044-.618-.06-.842-.286l-.643-.641c-.227-.226-.328-.537-.286-.843l.127-.873zm3.415.933l-.127.873A1.75 1.75 0 0 0 13.945 3.9l.873.127a1.75 1.75 0 0 0 1.39 1.39l.127.873c.043.305-.06.618-.285.842l-.642.642a1.75 1.75 0 0 0 0 2.474l.642.642c.226.226.328.537.285.842l-.127.873a1.75 1.75 0 0 0-1.39 1.39l-.873.127a1.75 1.75 0 0 0-1.09.7l-.642.642a1.75 1.75 0 0 0-2.474 0l-.642-.642a1.75 1.75 0 0 0-1.09-.7l-.873-.127a1.75 1.75 0 0 0-1.39-1.39l-.127-.873a1.75 1.75 0 0 0-.285-.842l.642-.642a1.75 1.75 0 0 0 0-2.474l-.642-.642a1.75 1.75 0 0 0-.285-.842l.127-.873a1.75 1.75 0 0 0 1.39-1.39l.873-.127a1.75 1.75 0 0 0 1.09-.7l.642-.642a1.75 1.75 0 0 0 2.474 0l.642.642c.26.26.622.408 1.002.408.38 0 .74-.147 1.002-.408l.642-.642c.226-.226.328-.537.285-.842l-.127-.873a1.75 1.75 0 0 0-1.39-1.39l-.873-.127a1.75 1.75 0 0 0-1.09-.7l-.642-.642zM4.204 1.343c-.137-.246.395-.42-.69-.47l-.873-.127c-.306-.044-.618.06-.842.286l-.643.641c-.227.226-.328.537-.286.843l.127.873c.05.295.224.552.47.69l.873.127c.306.044.618-.06.842-.286l.643-.641c.227-.226.328-.537-.286-.843l-.127-.873zM1.99 3.1l-.127.873A1.75 1.75 0 0 0 1.055 5l.873.127a1.75 1.75 0 0 0 1.39 1.39l.127.873c.043.305-.06.618-.285.842l-.642.642a1.75 1.75 0 0 0 0 2.474l.642.642c.226.226.328.537.285.842l-.127.873a1.75 1.75 0 0 0-1.39 1.39l-.873.127a1.75 1.75 0 0 0-1.09.7l-.642.642a1.75 1.75 0 0 0-2.474 0l-.642-.642a1.75 1.75 0 0 0-1.09-.7l-.873-.127a1.75 1.75 0 0 0-1.39-1.39l-.127-.873a1.75 1.75 0 0 0-.285-.842l.642-.642a1.75 1.75 0 0 0 0-2.474l-.642-.642a1.75 1.75 0 0 0-.285-.842l.127-.873a1.75 1.75 0 0 0 1.39-1.39l.873-.127a1.75 1.75 0 0 0 1.09-.7L3.6 1.942a1.75 1.75 0 0 0 2.474 0l.642.642c.26.26.622.408 1.002.408.38 0 .74-.147 1.002-.408l.642-.642c.226-.226.328-.537.285-.842l-.127-.873a1.75 1.75 0 0 0-1.39-1.39l-.873-.127a1.75 1.75 0 0 0-1.09-.7L1.99 1.942z"/></svg>
+                設定
+            </button>
+
+            <div class="ryd-toolbar-divider"></div>
+
+             <!-- 主執行按鈕 (通用) -->
+            <div class="ryd-changelog__actions">
+                <button
+                    class="ryd-button ryd-button--primary"
+                    type="button"
+                    id="mainActionButton"
+                >
+                    <span id="mainActionButtonText">開始改寫</span>
+                    <div id="mainLoadingSpinner" class_A="ryd-spinner"></div>
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- 欄位 2: 右側內容區 -->
+        <div class="ryd-content-area">
+
+            <!-- 通用錯誤提示框 -->
+            <div id="errorAlert" class="ryd-alert"></div>
+
+            <!-- 工具 1: AI 文章改寫 -->
+            <div class="tool-container" id="tool-content-improver">
+                <!-- 輸入區 -->
+                <section class="ryd-section">
+                    <div class="ryd-section__header">
+                      <h2 class="ryd-section__heading">1. 輸入內容 (Input)</h2>
+                    </div>
+
+                    <!-- Input Tabs -->
+                    <div class="ryd-tab-nav" id="ci_inputTabs">
+                        <button class="ryd-tab-button active" data-tab="file">檔案上傳</button>
+                        <button class="ryd-tab-button" data-tab="url">網址輸入</button>
+                        <button class="ryd-tab-button" data-tab="text">文字輸入</button>
+                    </div>
+
+                    <!-- Tab Panel 1: File Upload -->
+                    <div class="ryd-tab-panel active" id="fileInputPanel">
+                        <div class="ryd-form-group">
+                            <label for="ci_fileInputBrowse">選擇或拖曳檔案</label>
+                            <div id="ci_dropZone" class="ryd-drop-zone">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16" style="color: var(--ryd-muted); margin-bottom: 0.5rem;"><path d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0zm-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0z"/></svg>
+                                <span>拖曳到此處</span> 或 <span style="text-decoration: underline; cursor: pointer;">瀏覽</span>
+                                <p>支援：TXT, MD, DOCX (前端解析) / PDF (後端解析)</p>
+                            </div>
+                            <input type="file" id="ci_fileInputBrowse" class="file-uploader" accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel 2: URL Input -->
+                    <div class="ryd-tab-panel" id="urlInputPanel">
+                        <div class="ryd-form-group">
+                          <label for="ci_urlInput">輸入網址 (URL)</label>
+                          <input type="url" id="ci_urlInput" class="ryd-input url-input" placeholder="https://example.com/article">
+                           <small style="color: var(--ryd-muted);">注意：此功能需後端支援才能處理網頁內容。</small>
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel 3: Text Input -->
+                    <div class="ryd-tab-panel" id="textInputPanel">
+                        <div class="ryd-form-group">
+                          <label for="ci_transcriptInput">貼上原文</label>
+                          <textarea id="ci_transcriptInput" class="ryd-textarea transcript-input" rows="8" placeholder="請在此貼上您想改寫的文字..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 改寫形式 -->
+                    <div class="ryd-form-group">
+                      <label>改寫形式 (Mode)</label>
+                      <div class="ryd-button-group" id="rewriteModeButtons">
+                          <button class="ryd-button--toggle active" data-value="重寫">重寫</button>
+                          <button class="ryd-button--toggle" data-value="縮短">縮短</button>
+                          <button class="ryd-button--toggle" data-value="增長">增長</button>
+                      </div>
+                    </div>
+
+                    <!-- 改寫風格 -->
+                    <div class="ryd-form-group">
+                      <label>風格 (Tone)</label>
+                      <div class="ryd-button-group" id="rewriteToneButtons">
+                          <button class="ryd-button--toggle active" data-value="無">無</button>
+                          <button class="ryd-button--toggle" data-value="專業">專業</button>
+                          <button class="ryd-button--toggle" data-value="幽默">幽默</button>
+                          <button class="ryd-button--toggle" data-value="引人入勝">引人入勝</button>
+                          <button class="ryd-button--toggle" data-value="溫馨">溫馨</button>
+                          <button class="ryd-button--toggle ryd-button--add-tone" id="addToneBtn" type="button">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                             新增
+                          </button>
+                      </div>
+                    </div>
+                </section>
+
+                <!-- 輸出區 -->
+                <section class="ryd-section" id="ci_results"> <!-- Removed display:none -->
+                    <div class="ryd-section__header">
+                      <h2 class="ryd-section__heading">2. 改寫結果 (Output)</h2>
+                       <button class="ryd-icon-button" id="copyRewriteBtn" title="複製改寫結果">
+                            <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/><path d="M15.5 2H14a1 1 0 0 1-1-1V0h.5A1.5 1.5 0 0 1 15 .5V2z"/></svg>
+                            <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>
+                       </button>
+                    </div>
+                    <div class="ryd-form-group">
+                      <!-- Added placeholder -->
+                      <textarea id="rewriteOutput" class="ryd-textarea" rows="10" readonly placeholder="AI 改寫結果將顯示於此..."></textarea>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 文章產生器 UI -->
+            <div class="tool-container" id="tool-article-generator" style="display: none;">
+                <!-- 輸入區 -->
+                <section class="ryd-section">
+                    <div class="ryd-section__header">
+                      <h2 class="ryd-section__heading">1. 輸入設定 (Input)</h2>
+                    </div>
+                    
+                    <!-- 標題 -->
+                    <div class="ryd-form-group">
+                      <label for="ag_title">文章標題 (Title)</label>
+                      <input type="text" id="ag_title" class="ryd-input" placeholder="請輸入您希望的文章標題...">
+                    </div>
+                    
+                    <!-- 關鍵字 -->
+                    <div class="ryd-form-group">
+                      <label for="ag_keywords">核心關鍵字 (Keywords)</label>
+                      <div id="ag_keywords_container">
+                      </div>
+                      <input type="text" id="ag_keywords" class="ryd-input" placeholder="輸入關鍵字後按 Enter 或逗號新增">
+                    </div>
+
+                    <div class="ryd-form-group">
+                      <label for="ag_audience">目標受眾 (Audience) (選填)</label>
+                      <input type="text" id="ag_audience" class="ryd-input" placeholder="例如：學生、上班族、行銷經理">
+                    </div>
+
+                    <!-- 長度 -->
+                    <div class="ryd-form-group">
+                      <label for="ag_length">生成長度 (Length)</label>
+                      <select id="ag_length" class="ryd-select">
+                        <option value="短" selected>短 (約 300-500 字)</option>
+                        <option value="中">中 (約 800-1200 字)</option>
+                        <option value="長">長 (約 1500-2000 字)</option>
+                      </select>
+                    </div>
+                    
+                    <!-- 風格 -->
+                    <div class="ryd-form-group">
+                      <label>風格 (Tone)</label>
+                      <div class="ryd-button-group" id="ag_toneButtons">
+                          <button class="ryd-button--toggle active" data-value="無">無 (專業)</button>
+                          <button class="ryd-button--toggle" data-value="幽默">幽默</button>
+                          <button class="ryd-button--toggle" data-value="引人入勝">引人入勝</button>
+                          <button class="ryd-button--toggle" data-value="溫馨">溫馨</button>
+                          <button class="ryd-button--toggle" data-value="教學性">教學性</button>
+                          <button class="ryd-button--toggle ryd-button--add-tone" id="ag_addToneBtn" type="button">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                             新增
+                          </button>
+                      </div>
+                    </div>
+                    
+                    <!-- (NEW) 網路即時資訊 -->
+                    <div class="ryd-form-group">
+                        <div class="ryd-checkbox-group">
+                           <input type="checkbox" id="ag_useWebSearch" />
+                           <span class="ryd-checkbox">
+                               <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/></svg>
+                           </span>
+                           <label for="ag_useWebSearch">使用網路即時資訊 (Google Search)</label>
+                       </div>
+                    </div>
+                </section>
+
+                <!-- 輸出區 -->
+                <section class="ryd-section" id="ag_results">
+                    <div class="ryd-section__header">
+                      <h2 class="ryd-section__heading">2. 生成結果 (Output)</h2>
+                       <button class="ryd-icon-button" id="copyArticleBtn" title="複製文章">
+                            <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/><path d="M15.5 2H14a1 1 0 0 1-1-1V0h.5A1.5 1.5 0 0 1 15 .5V2z"/></svg>
+                            <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>
+                       </button>
+                    </div>
+                    <div class="ryd-form-group">
+                      <textarea id="articleOutput" class="ryd-textarea" rows="18" readonly placeholder="AI 生成的文章將顯示於此..."></textarea>
+                    </div>
+                </section>
+            </div>
+
+            <!-- FB 廣告貼文 UI -->
+            <div class="tool-container" id="tool-fb-post" style="display: none;">
+                <!-- 輸入區 -->
+                <section class="ryd-section">
+                    <div class="ryd-section__header">
+                      <h2 class="ryd-section__heading">1. 貼文設定 (Input)</h2>
+                    </div>
+
+                    <!-- 貼文內容 (使用簡化的 Textarea) -->
+                    <div class="ryd-form-group">
+                      <label for="fb_topic">關於您的貼文內容 (Topic)</label>
+                      <textarea id="fb_topic" class="ryd-textarea" rows="5" placeholder="對產品、服務或活動的敘述..."></textarea>
+                    </div>
+
+                    <!-- 生成形式 -->
+                    <div class="ryd-form-group">
+                      <label>生成形式 (Form)</label>
+                      <div class="ryd-button-group" id="fb_formButtons">
+                          <button class="ryd-button--toggle active" data-value="廣告貼文">廣告貼文</button>
+                          <button class="ryd-button--toggle" data-value="一般貼文">一般貼文</button>
+                      </div>
+                    </div>
+                    
+                    <!-- 目標受眾 -->
+                    <div class="ryd-form-group">
+                      <label for="fb_audience">目標受眾 (Audience) (選填)</label>
+                      <input type="text" id="fb_audience" class="ryd-input" placeholder="例如：學生、健身愛好者、小資族">
+                    </div>
+
+                    <!-- 長度 -->
+                    <div class="ryd-form-group">
+                      <label for="fb_length">生成長度 (Length)</label>
+                      <select id="fb_length" class="ryd-select">
+                        <option value="短" selected>短 (1-3 句話)</option>
+                        <option value="中">中 (1-2 個段落)</option>
+                        <option value="長">長 (多段落)</option>
+                      </select>
+                    </div>
+                    
+                    <!-- 風格 -->
+                    <div class="ryd-form-group">
+                      <label>風格 (Tone)</label>
+                      <div class="ryd-button-group" id="fb_toneButtons">
+                          <button class="ryd-button--toggle active" data-value="無">無 (說服力)</button>
+                          <button class="ryd-button--toggle" data-value="幽默">幽默</button>
+                          <button class="ryd-button--toggle" data-value="興奮">興奮</button>
+                          <button class="ryd-button--toggle" data-value="有創意">有創意</button>
+                          <button class="ryd-button--toggle" data-value="溫馨">溫馨</button>
+                          <button class="ryd-button--toggle ryd-button--add-tone" id="fb_addToneBtn" type="button">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                             新增
+                          </button>
+                      </div>
+                    </div>
+                    
+                    <!-- 額外選項 -->
+                    <div class="ryd-form-group">
+                        <div class="ryd-checkbox-group">
+                           <input type="checkbox" id="fb_includeImage" />
+                           <span class="ryd-checkbox">
+                               <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/></svg>
+                           </span>
+                           <label for="fb_includeImage">包含圖片提示</label>
+                       </div>
+                       <div class="ryd-checkbox-group">
+                           <input type="checkbox" id="fb_useWebSearch" />
+                           <span class="ryd-checkbox">
+                               <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/></svg>
+                           </span>
+                           <label for="fb_useWebSearch">使用網路即時資訊 (Google Search)</label>
+                       </div>
+                    </div>
+                </section>
+
+                <!-- 輸出區 -->
+                <section class="ryd-section" id="fb_results">
+                    <div class="ryd-section__header">
+                      <h2 class="ryd-section__heading">2. 生成結果 (Output)</h2>
+                       <button class="ryd-icon-button" id="copyFbPostBtn" title="複製貼文">
+                            <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 0H6a2 2 0 0 0-2 2 2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z"/><path d="M15.5 2H14a1 1 0 0 1-1-1V0h.5A1.5 1.5 0 0 1 15 .5V2z"/></svg>
+                            <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>
+                       </button>
+                    </div>
+                    <div class="ryd-form-group">
+                      <textarea id="fbPostOutput" class="ryd-textarea" rows="18" readonly placeholder="AI 生成的 FB 貼文將顯示於此..."></textarea>
+                    </div>
+                </section>
+            </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- 設定 Modal -->
+    <div class="ryd-modal-backdrop" id="settingsModal">
+        <div class="ryd-modal-content" style="width: min(100%, 600px);">
+            <div class="ryd-section__header">
+              <h2 class="ryd-section__heading">⚙️ 全域設定</h2>
+              <button class="ryd-icon-button" id="closeSettingsModalBtn" title="關閉">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854z"/></svg>
+              </button>
+            </div>
+            <div class="ryd-form-group">
+              <label for="modal_apiKeyInput">Gemini API Key</label>
+              <input type="password" id="modal_apiKeyInput" class="ryd-input" placeholder="請貼上您的 API Key"/>
+            </div>
+            <div class="ryd-checkbox-group">
+              <input type="checkbox" id="modal_saveApiKeyCheckbox" />
+              <span class="ryd-checkbox">
+                <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/></svg>
+              </span>
+              <label for="modal_saveApiKeyCheckbox">儲存此 API Key 到瀏覽器</label>
+            </div>
+            <div class="ryd-form-group">
+              <label for="modal_modelSelector">預設 AI 模型</label>
+              <select id="modal_modelSelector" class="ryd-select">
+                <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (速度快)</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro (品質高)</option>
+                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (最快)</option>
+              </select>
+            </div>
+            <div class="ryd-form-group">
+              <label for="modal_languageSelector">預設輸出語言</label>
+              <select id="modal_languageSelector" class="ryd-select">
+                <option value="auto" selected>自動 (與原文相同)</option>
+                <option value="繁體中文">繁體中文</option>
+                <option value="English">English</option>
+                <option value="日本語">日本語</option>
+              </select>
+            </div>
+            <div class="ryd-changelog__actions" style="flex-direction: row; justify-content: flex-end;"> <!-- Modal 按鈕靠右 -->
+                <button class="ryd-button ryd-button--primary" id="saveSettingsBtn">
+                    <span>儲存設定</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+      // 使用 jQuery 簡化 DOM 操作
+      $(document).ready(() => {
+        // --- 儲存金鑰 ---
+        const API_KEY_STORAGE = "geminiApiKey";
+        const MODEL_STORAGE = "geminiModel";
+        const LANG_STORAGE = "geminiLang";
+
+        // --- 全域狀態 ---
+        let currentTool = 'content-improver';
+        let ci_activeInputTab = 'file'; // 預設輸入分頁
+        let ci_rewriteMode = '重寫';
+        let ci_rewriteTone = '無'; // '無' or custom
+
+        // --- 文章產生器狀態 ---
+        let ag_length = '中';
+        let ag_tone = '無';
+        let ag_useWebSearch = false;
+
+        // --- FB 貼文狀態 ---
+        let fb_form = '廣告貼文';
+        let fb_length = '短';
+        let fb_tone = '無';
+
+        // --- 通用元素 ---
+        const $errorAlert = $("#errorAlert");
+        const $mainActionButton = $("#mainActionButton");
+        const $mainActionButtonText = $("#mainActionButtonText");
+        const $mainLoadingSpinner = $("#mainLoadingSpinner");
+
+        const $fb_topic = $("#fb_topic");
+        const $fb_formButtons = $("#fb_formButtons");
+        const $fb_audience = $("#fb_audience");
+        const $fb_length = $("#fb_length");
+        const $fb_toneButtons = $("#fb_toneButtons");
+        const $fb_addToneBtn = $("#fb_addToneBtn");
+        const $fb_includeImage = $("#fb_includeImage");
+        const $fb_useWebSearch = $("#fb_useWebSearch");
+        const $fb_results = $("#fb_results");
+        const $fb_output = $("#fbPostOutput");
+        const $fb_copyPostBtn = $("#copyFbPostBtn");
+
+        // --- 設定 Modal 元素 ---
+        const $settingsModal = $("#settingsModal");
+        const $settingsBtn = $("#settingsBtn");
+        const $closeSettingsModalBtn = $("#closeSettingsModalBtn");
+        const $saveSettingsBtn = $("#saveSettingsBtn");
+        const $modal_apiKeyInput = $("#modal_apiKeyInput");
+        const $modal_saveApiKeyCheckbox = $("#modal_saveApiKeyCheckbox");
+        const $modal_modelSelector = $("#modal_modelSelector");
+        const $modal_languageSelector = $("#modal_languageSelector");
+
+        // --- 工具列 ---
+        const $toolList = $("#toolList");
+        const $toolButtons = $toolList.find(".ryd-tool-button[data-tool]");
+        const $toolContainers = $(".tool-container");
+
+        // --- 工具 1 (ContentImprover) 元素 ---
+        const $ci_inputTabs = $("#ci_inputTabs");
+        const $ci_tabButtons = $ci_inputTabs.find('.ryd-tab-button'); // **提前定義**
+        const $ci_tabPanels = $('#tool-content-improver .ryd-tab-panel');
+        const $ci_dropZone = $("#ci_dropZone");
+        const $ci_fileInputBrowse = $("#ci_fileInputBrowse");
+        const $ci_urlInput = $("#ci_urlInput");
+        const $ci_transcriptInput = $("#ci_transcriptInput"); // Textarea is now generic input
+        const $ci_rewriteModeButtons = $("#rewriteModeButtons");
+        const $ci_rewriteToneButtons = $("#rewriteToneButtons");
+        const $addToneBtn = $("#addToneBtn");
+        const $ci_results = $("#ci_results");
+        const $ci_rewriteOutput = $("#rewriteOutput");
+        const $ci_copyRewriteBtn = $("#copyRewriteBtn");
+
+        // --- 工具 2 (ArticleGenerator) 元素 ---
+        const $ag_title = $("#ag_title");
+        const $ag_keywords = $("#ag_keywords");
+        const $ag_keywords_container = $("#ag_keywords_container");
+        const $ag_audience = $("#ag_audience");
+        const $ag_length = $("#ag_length");
+        const $ag_toneButtons = $("#ag_toneButtons");
+        const $ag_addToneBtn = $("#ag_addToneBtn");
+        const $ag_useWebSearch = $("#ag_useWebSearch");
+        const $ag_results = $("#ag_results");
+        const $ag_output = $("#articleOutput");
+        const $ag_copyArticleBtn = $("#copyArticleBtn");
+
+        // ===========================================
+        // 1. 初始化與設定 (Settings)
+        // ===========================================
+        function loadSettings() {
+            const savedApiKey = localStorage.getItem(API_KEY_STORAGE);
+            const savedModel = localStorage.getItem(MODEL_STORAGE);
+            const savedLang = localStorage.getItem(LANG_STORAGE);
+            if (savedApiKey) {
+                $modal_apiKeyInput.val(savedApiKey);
+                $modal_saveApiKeyCheckbox.prop('checked', true);
+            }
+            if (savedModel) $modal_modelSelector.val(savedModel);
+            if (savedLang) $modal_languageSelector.val(savedLang);
+        }
+        $settingsBtn.on('click', () => $settingsModal.addClass('visible'));
+        $closeSettingsModalBtn.on('click', () => $settingsModal.removeClass('visible'));
+        $saveSettingsBtn.on('click', () => {
+            const apiKey = $modal_apiKeyInput.val();
+            const saveKey = $modal_saveApiKeyCheckbox.prop('checked');
+            if (saveKey) localStorage.setItem(API_KEY_STORAGE, apiKey);
+            else localStorage.removeItem(API_KEY_STORAGE);
+            localStorage.setItem(MODEL_STORAGE, $modal_modelSelector.val());
+            localStorage.setItem(LANG_STORAGE, $modal_languageSelector.val());
+            $settingsModal.removeClass('visible');
+            showError("設定已儲存。", "success");
+        });
+
+        // ===========================================
+        // 2. 工具切換 (Tool Switching)
+        // ===========================================
+        function switchTool(tool) {
+            if (!tool || tool === currentTool) return;
+            currentTool = tool;
+            $toolButtons.each(function() {
+                $(this).toggleClass('active', $(this).data('tool') === tool);
+            });
+            $toolContainers.hide(); // Hide all
+            $(`#tool-${tool}`).show(); // Show current
+            updateMainButtonText();
+            hideError();
+
+            if (currentTool === 'content-improver') {
+                 $ci_results.show();
+            } else if (currentTool === 'article-generator') {
+                 $ag_results.show();
+            } else if (currentTool === 'fb-post') {
+                 $fb_results.show();
+            }
+        }
+
+        $toolList.on('click', '.ryd-tool-button[data-tool]', function() {
+            switchTool($(this).data('tool'));
+        });
+
+
+        function updateMainButtonText() {
+             if (currentTool === 'content-improver') {
+                 $mainActionButtonText.text("開始改寫");
+             } else if (currentTool === 'article-generator') {
+                 $mainActionButtonText.text("開始生成文章");
+             } else if (currentTool === 'fb-post') { // (NEW)
+                 $mainActionButtonText.text("開始生成貼文");
+             } else {
+                 $mainActionButtonText.text("開始生成");
+             }
+             $mainActionButton.data('originalText', $mainActionButtonText.text());
+        }
+
+        // ===========================================
+        // 3. 通用輔助函式 (Helpers)
+        // ===========================================
+        function validateGlobalInputs() {
+            const apiKey = localStorage.getItem(API_KEY_STORAGE);
+            if (!apiKey || !apiKey.trim()) {
+                showError("錯誤：API Key 未設定。請點擊左側 '設定' 按鈕。"); return false;
+            }
+            return true;
+        }
+
+        function setLoading(isLoading) {
+            let loadingText = "生成中";
+            if(currentTool === 'content-improver') loadingText = "改寫中";
+            else if(currentTool === 'article-generator') loadingText = "生成中";
+            else if(currentTool === 'fb-post') loadingText = "生成中"; 
+
+            const originalText = $mainActionButton.data('originalText') || "開始操作";
+            $mainActionButtonText.text(isLoading ? `${loadingText}...` : originalText);
+        }
+
+        function showError(message, type = "error") {
+            $errorAlert.text(message)
+                       .removeClass('success error warning') // Remove previous classes
+                       .addClass(type) // Add current type class ('warning' added)
+                       .show();
+        }
+        function hideError() { $errorAlert.hide().text(''); }
+
+        function handleCopyClick(textToCopy, buttonElement, textElement = null) {
+          // Use document.execCommand as fallback due to potential iframe restrictions
+          try {
+              const $tempTextArea = $('<textarea>');
+              $('body').append($tempTextArea);
+              $tempTextArea.val(textToCopy).select();
+              const success = document.execCommand('copy');
+              $tempTextArea.remove();
+
+              if (!success) {
+                  throw new Error('Copy command failed');
+              }
+
+              // Provide feedback
+              const $button = $(buttonElement);
+              const $textEl = textElement ? $(textElement) : null; // Use jQuery object if exists
+              const originalText = $textEl ? $textEl.text() : null;
+              const $iconCopy = $button.find(".icon-copy");
+              const $iconCheck = $button.find(".icon-check");
+
+              if ($iconCopy.length) $iconCopy.hide();
+              if ($iconCheck.length) $iconCheck.show();
+              if ($textEl) $textEl.text("已複製！");
+              $button.prop('disabled', true);
+
+              setTimeout(() => {
+                  if ($iconCopy.length) $iconCopy.show();
+                  if ($iconCheck.length) $iconCheck.hide();
+                  if ($textEl) $textEl.text(originalText);
+                  $button.prop('disabled', false);
+              }, 1500);
+
+          } catch (err) {
+              console.error("Copy failed:", err);
+              showError("複製失敗: " + (err.message || "瀏覽器不支援或權限不足"));
+          }
+        }
+
+
+        // Updated file processing function with mammoth.js and pdf.js attempt
+        function handleFileProcessing(file, $textInput) {
+            return new Promise(async (resolve, reject) => { // Make function async
+                if (!file) { reject("No file provided"); return; }
+                hideError();
+
+                const fileType = file.type;
+                const fileName = file.name;
+                const reader = new FileReader();
+                let shouldSwitchTab = false;
+                let fileProcessType = 'unknown';
+
+                reader.onload = async (e) => { // Make onload async for PDF
+                    let fileContent = e.target.result;
+                    let fileProcessType = 'unknown';
+
+                    try { // Wrap potential errors
+                        if (fileType === 'text/plain' || fileType === 'text/markdown' || fileName.endsWith('.md') || fileName.endsWith('.txt')) {
+                            $textInput.val(fileContent);
+                            shouldSwitchTab = true;
+                            fileProcessType = 'text';
+                            resolve({ name: fileName, content: fileContent, type: fileProcessType });
+
+                        } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+                            if (typeof mammoth === 'undefined') {
+                                throw new Error('DOCX 解析器 (mammoth.js) 未載入。');
+                            }
+                            showError('正在讀取 DOCX 內容...', 'info');
+                            setLoading(true); // Disable button
+                            // Mammoth needs ArrayBuffer, which is what e.target.result is here
+                            const result = await mammoth.extractRawText({ arrayBuffer: fileContent });
+                            $textInput.val(result.value);
+                            shouldSwitchTab = true;
+                            fileProcessType = 'docx';
+                            hideError();
+                            resolve({ name: fileName, content: result.value, type: fileProcessType });
+
+
+                        } else if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+                            if (typeof pdfjsLib === 'undefined' || !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                                throw new Error('PDF 解析器 (pdf.js) 未正確載入。');
+                            }
+                            showError('正在讀取 PDF 內容...', 'info');
+                            setLoading(true); // Disable button
+
+                            const loadingTask = pdfjsLib.getDocument({ data: fileContent }); // fileContent is ArrayBuffer
+                            const pdf = await loadingTask.promise;
+                            let fullText = '';
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const textContent = await page.getTextContent();
+                                // Basic text joining, might lose formatting/spacing
+                                fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                            }
+                            $textInput.val(fullText.trim());
+                            shouldSwitchTab = true;
+                            fileProcessType = 'pdf';
+                            hideError();
+                            resolve({ name: fileName, content: fullText.trim(), type: fileProcessType });
+
+                        } else {
+                            throw new Error(`不支援的檔案格式 (${fileType || '未知'})。`);
+                        }
+
+                        // Switch tab if processing was successful for TXT/MD/DOCX/PDF
+                        if (shouldSwitchTab) {
+                            switchInputTab('text');
+                        }
+
+                    } catch (err) { // Catch errors from any processing step
+                        console.error("File processing error:", err);
+                        const errorMsg = err.message || (err.name === 'PasswordException' ? 'PDF檔案受密碼保護' : '讀取檔案失敗');
+                         showError(`錯誤：${errorMsg}`);
+                        $textInput.val(`[檔案 ${fileName} 處理失敗]`);
+                        reject(err); // Reject the main promise on error
+                    } finally {
+                        setLoading(false); // Always re-enable button
+                    }
+                }; // end reader.onload
+
+                 reader.onerror = (e) => {
+                    showError('錯誤：檔案讀取時發生基礎錯誤。');
+                    reject(e);
+                 };
+
+                 // Read as appropriate type
+                 if (fileType === 'text/plain' || fileType === 'text/markdown' || fileName.endsWith('.md') || fileName.endsWith('.txt')) {
+                    reader.readAsText(file);
+                 } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx') || fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+                    reader.readAsArrayBuffer(file); // Read DOCX and PDF as ArrayBuffer
+                 } else {
+                     showError(`錯誤：不支援的檔案格式 (${fileType || '未知'})。`);
+                     reject("Unsupported file type");
+                 }
+            });
+        }
+
+
+        // ===========================================
+        // 4. 工具 1: AI 文章改寫 (ContentImprover)
+        // ===========================================
+
+        // --- Input Tabs ---
+        function switchInputTab(tabId) {
+            if (!tabId || tabId === ci_activeInputTab) return;
+            ci_activeInputTab = tabId;
+            // Use $ci_tabButtons here
+            $ci_tabButtons.each(function() { $(this).toggleClass('active', $(this).data('tab') === tabId); });
+            $ci_tabPanels.removeClass('active').hide();
+            $(`#${tabId}InputPanel`).addClass('active').show();
+        }
+
+
+        $ci_inputTabs.on('click', '.ryd-tab-button', function() {
+             const $button = $(this);
+             if ($button.hasClass('active')) return;
+             switchInputTab($button.data('tab'));
+        });
+
+
+        // --- Drag & Drop & Browse ---
+        $ci_dropZone.on({
+            dragover: function(e) { e.preventDefault(); $(this).addClass('dragover'); },
+            dragleave: function() { $(this).removeClass('dragover'); },
+            drop: async function(e) {
+                e.preventDefault();
+                $(this).removeClass('dragover');
+                const file = e.originalEvent.dataTransfer.files[0];
+                try {
+                     await handleFileProcessing(file, $ci_transcriptInput);
+                } catch (error) { console.error("Error processing dropped file:", error); }
+                $ci_fileInputBrowse.val(null);
+            },
+            click: function() { $ci_fileInputBrowse.click(); }
+        });
+        $ci_fileInputBrowse.on('change', async function(e) {
+            try {
+                 await handleFileProcessing(e.target.files[0], $ci_transcriptInput);
+            } catch (error) { console.error("Error processing browsed file:", error); }
+             $(this).val(null);
+        });
+
+
+        // --- Rewrite Mode/Tone ---
+        $ci_rewriteModeButtons.on('click', '.ryd-button--toggle', function() {
+            const $button = $(this);
+            ci_rewriteMode = $button.data('value');
+            $ci_rewriteModeButtons.find('.ryd-button--toggle').removeClass('active');
+            $button.addClass('active');
+        });
+
+        // Use event delegation for dynamically added buttons
+        $ci_rewriteToneButtons.on('click', '.ryd-button--toggle:not(#addToneBtn)', function() {
+            const $button = $(this);
+            ci_rewriteTone = $button.data('value');
+            $ci_rewriteToneButtons.find('.ryd-button--toggle').removeClass('active');
+            $button.addClass('active');
+        });
+
+        $addToneBtn.on('click', function() {
+            // Use native prompt, avoid confirm/alert
+             try {
+                const newTone = window.prompt("請輸入新的風格名稱："); // Use window.prompt
+                if (newTone && newTone.trim()) {
+                    const cleanTone = newTone.trim();
+                    const existingButton = $ci_rewriteToneButtons.find(`.ryd-button--toggle[data-value="${cleanTone}"]`);
+                    if (existingButton.length > 0) {
+                         existingButton.trigger('click');
+                         return;
+                    }
+                    const $newButton = $('<button>')
+                        .addClass('ryd-button--toggle')
+                        .attr('data-value', cleanTone)
+                        .text(cleanTone);
+                    $newButton.insertBefore($addToneBtn);
+                    $newButton.trigger('click');
+                }
+             } catch (e) {
+                 console.error("Prompt failed:", e);
+                 showError("無法顯示輸入框，您的瀏覽器可能限制了 prompt 功能。");
+             }
+        });
+
+        $ci_copyRewriteBtn.on('click', () => handleCopyClick($ci_rewriteOutput.val(), $ci_copyRewriteBtn[0]));
+
+        // ===========================================
+        // 5. 工具 2: AI 文章產生器 (ArticleGenerator)
+        // ===========================================
+        
+        $ag_length.on('change', function() { ag_length = $(this).val(); });
+        $ag_useWebSearch.on('change', function() { ag_useWebSearch = $(this).is(':checked'); });
+        
+        $ag_toneButtons.on('click', '.ryd-button--toggle:not(#ag_addToneBtn)', function() {
+            ag_tone = $(this).data('value');
+            $ag_toneButtons.find('.ryd-button--toggle').removeClass('active');
+            $(this).addClass('active');
+        });
+        
+        $ag_addToneBtn.on('click', function() {
+             try {
+                const newTone = window.prompt("請輸入新的風格名稱：");
+                if (newTone && newTone.trim()) {
+                    const cleanTone = newTone.trim();
+                    const existingButton = $ag_toneButtons.find(`.ryd-button--toggle[data-value="${cleanTone}"]`);
+                    if (existingButton.length > 0) { existingButton.trigger('click'); return; }
+                    const $newButton = $('<button>').addClass('ryd-button--toggle').attr('data-value', cleanTone).text(cleanTone);
+                    $newButton.insertBefore($ag_addToneBtn);
+                    $newButton.trigger('click');
+                }
+             } catch (e) { showError("無法顯示輸入框，您的瀏覽器可能限制了 prompt 功能。"); }
+        });
+        
+        $ag_copyArticleBtn.on('click', () => handleCopyClick($ag_output.val(), $ag_copyArticleBtn[0]));
+
+
+        $fb_formButtons.on('click', '.ryd-button--toggle', function() {
+            fb_form = $(this).data('value');
+            $fb_formButtons.find('.ryd-button--toggle').removeClass('active');
+            $(this).addClass('active');
+        });
+        $fb_length.on('change', function() { fb_length = $(this).val(); });
+        
+        $fb_toneButtons.on('click', '.ryd-button--toggle:not(#fb_addToneBtn)', function() {
+            fb_tone = $(this).data('value');
+            $fb_toneButtons.find('.ryd-button--toggle').removeClass('active');
+            $(this).addClass('active');
+        });
+        
+        $fb_addToneBtn.on('click', function() {
+             try {
+                const newTone = window.prompt("請輸入新的風格名稱：");
+                if (newTone && newTone.trim()) {
+                    const cleanTone = newTone.trim();
+                    const existingButton = $fb_toneButtons.find(`.ryd-button--toggle[data-value="${cleanTone}"]`);
+                    if (existingButton.length > 0) { existingButton.trigger('click'); return; }
+                    const $newButton = $('<button>').addClass('ryd-button--toggle').attr('data-value', cleanTone).text(cleanTone);
+                    $newButton.insertBefore($fb_addToneBtn);
+                    $newButton.trigger('click');
+                }
+             } catch (e) { showError("無法顯示輸入框，您的瀏覽器可能限制了 prompt 功能。"); }
+        });
+        
+        $fb_copyPostBtn.on('click', () => handleCopyClick($fb_output.val(), $fb_copyPostBtn[0]));
+
+        // 將關鍵字新增為標籤
+        function addKeyword(keywordText) {
+            const cleanKeyword = keywordText.trim();
+            if (!cleanKeyword) return; // 不新增空標籤
+            
+            // 檢查是否已存在
+            let exists = false;
+            $ag_keywords_container.find('.ryd-keyword-pill').each(function() {
+                // 讀取文字（排除 '×' 符號）
+                const existingKeyword = $(this).clone().find('.ryd-keyword-pill-remove').remove().end().text().trim();
+                if (existingKeyword === cleanKeyword) {
+                    exists = true;
+                    return;
+                }
+            });
+
+            if (exists) {
+                showError(`關鍵字 "${cleanTone}" 已經存在。`, 'warning'); // 使用 cleanTone
+                return; // 如果已存在，就不新增
+            }
+
+            // 建立標籤
+            const $pill = $('<span>').addClass('ryd-button--toggle ryd-keyword-pill').text(cleanKeyword);
+            const $removeBtn = $('<span>').addClass('ryd-keyword-pill-remove').html('&times;').attr('title', '移除');
+            
+            $pill.append($removeBtn);
+            $ag_keywords_container.append($pill);
+        }
+
+        // 監聽關鍵字輸入框的按鍵
+        $ag_keywords.on('keyup', function(e) {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                addKeyword($(this).val());
+                $(this).val(''); // 清空輸入框
+            }
+        });
+
+        // 監聽標籤移除按鈕 (使用事件委派)
+        $ag_keywords_container.on('click', '.ryd-keyword-pill-remove', function() {
+            $(this).parent('.ryd-keyword-pill').remove();
+        });
+
+        // ===========================================
+        // 5. 主執行按鈕點擊事件
+        // ===========================================
+        $mainActionButton.on("click", async () => {
+            if (!validateGlobalInputs()) return;
+
+            let task = '';
+            let content = '';
+            let inputType = '';
+            let requestBody = {};
+
+            if (currentTool === 'content-improver') {
+
+                task = 'rewrite_content';
+                inputType = ci_activeInputTab;
+
+                if (inputType === 'file' || inputType === 'text') {
+                    content = $ci_transcriptInput.val();
+                    // Block execution if the content is still a placeholder needing backend
+                    if (content.startsWith('[檔案') && content.includes('等待後端處理')) {
+                       showError("錯誤：檔案內容尚未完全讀取或格式不支援前端處理。");
+                       return;
+                    }
+                    if (content.startsWith('[檔案') && content.includes('讀取失敗')) {
+                       showError("錯誤：先前檔案讀取失敗，請重新選擇或輸入文字。");
+                       return;
+                    }
+                } else if (inputType === 'url') {
+                     content = $ci_urlInput.val();
+                     if (!content.trim() || !content.startsWith('http')) { showError("錯誤：請輸入有效的網址。"); return; }
+                      showError("注意：後端 URL 處理開發中，AI 可能無法正確理解網址內容。", "warning");
+                }
+
+                if (!content.trim()) {
+                    showError(`錯誤：請在 '${inputType === 'url' ? '網址輸入' : (inputType === 'file' ? '檔案上傳' : '文字輸入')}' 分頁提供內容！`); return;
+                }
+
+                requestBody = {
+                    apiKey: localStorage.getItem(API_KEY_STORAGE),
+                    model: localStorage.getItem(MODEL_STORAGE) || 'gemini-2.5-flash',
+                    language: localStorage.getItem(LANG_STORAGE) || 'auto',
+                    content: content,
+                    inputType: inputType,
+                    task: task,
+                    mode: ci_rewriteMode,
+                    tone: ci_rewriteTone
+                };
+
+              
+              $outputArea = $ci_rewriteOutput;
+              outputPlaceholder = "AI 改寫結果將顯示於此...";
+              errorText = "改寫";
+
+            }else if (currentTool === 'article-generator') {
+                task = 'generate_article';
+                const title = $ag_title.val();
+                if (!title.trim()) { showError("錯誤：文章標題不可為空！"); return; }
+
+                const keywordsArray = [];
+                $ag_keywords_container.find('.ryd-keyword-pill').each(function() {
+                    const keywordText = $(this).clone().find('.ryd-keyword-pill-remove').remove().end().text().trim();
+                    keywordsArray.push(keywordText);
+                });
+                // 檢查輸入框中是否還有未按 Enter 的關鍵字
+                const remainingKeyword = $ag_keywords.val().trim();
+                if (remainingKeyword) {
+                    keywordsArray.push(remainingKeyword);
+                    $ag_keywords.val(''); // 清空
+                }
+                const keywords = keywordsArray.join(', ');
+
+                requestBody = {
+                    apiKey: localStorage.getItem(API_KEY_STORAGE), model: localStorage.getItem(MODEL_STORAGE) || 'gemini-2.5-flash',
+                    language: localStorage.getItem(LANG_STORAGE) || 'auto',
+                    task: task,
+                    title: title,
+                    keywords: $ag_keywords.val(),
+                    length: $ag_length.val(), // Read current value
+                    audience: $ag_audience.val(),
+                    tone: ag_tone, // Use state variable
+                    useWebSearch: $ag_useWebSearch.is(':checked')
+                };
+                $outputArea = $ag_output;
+                outputPlaceholder = "AI 生成的文章將顯示於此...";
+                errorText = "生成文章";
+            }else if (currentTool === 'fb-post') {
+                task = 'generate_fb_post';
+                const topic = $fb_topic.val();
+                if (!topic.trim()) { showError("錯誤：貼文內容不可為空！"); return; }
+
+                requestBody = {
+                    apiKey: localStorage.getItem(API_KEY_STORAGE), model: localStorage.getItem(MODEL_STORAGE) || 'gemini-2.5-flash',
+                    language: localStorage.getItem(LANG_STORAGE) || 'auto',
+                    task: task,
+                    topic: topic,
+                    form: fb_form,
+                    audience: $fb_audience.val(),
+                    length: $fb_length.val(),
+                    tone: fb_tone,
+                    useWebSearch: $fb_useWebSearch.is(':checked'),
+                    includeImage: $fb_includeImage.is(':checked')
+                };
+                $outputArea = $fb_output;
+                outputPlaceholder = "AI 生成的 FB 貼文將顯示於此...";
+                errorText = "生成貼文";
+            }
+            else { showError("錯誤：未知的工具或未選擇工具。"); return; }
+
+            hideError();
+
+            $outputArea.val('').attr('placeholder', 'AI 正在生成中，請稍候...');
+            if ($outputArea.closest('.ryd-section').is(':hidden')) {
+                 $outputArea.closest('.ryd-section').show();
+            }
+
+            setLoading(true);
+            // updateMainButtonText(); // setLoading handles text update
+
+            try {
+                const response = await fetch("api.php", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(requestBody),
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) throw new Error(data.error || "後端伺服器錯誤");
+
+                if (task === 'rewrite_content') {
+                    $ci_rewriteOutput.val(data.rewrittenText || '(AI 未能產生內容)');
+                }else if (task === 'generate_article') {
+                    $ag_output.val(data.articleText || '(AI 未能產生內容)');
+                } else if (task === 'generate_fb_post') { // (NEW)
+                    $fb_output.val(data.fbPostText || '(AI 未能產生內容)');
+                }
+                $ci_results.show();
+
+            } catch (error) {
+                if (currentTool === 'content-improver') {
+                    $ci_rewriteOutput.attr('placeholder', outputPlaceholder);
+                 } else if (currentTool === 'article-generator') {
+                    $ag_output.attr('placeholder', outputPlaceholder);
+                 } else if (currentTool === 'fb-post') { // (NEW)
+                    $fb_output.attr('placeholder', outputPlaceholder);
+                 }
+            } finally {
+                if (currentTool === 'content-improver') {
+                    if($ci_rewriteOutput.val()){ $ci_rewriteOutput.removeAttr('placeholder'); }
+                    else { $ci_rewriteOutput.attr('placeholder', outputPlaceholder); }
+                 } else if (currentTool === 'article-generator') {
+                    if($ag_output.val()){ $ag_output.removeAttr('placeholder'); }
+                    else { $ag_output.attr('placeholder', outputPlaceholder); }
+                 } else if (currentTool === 'fb-post') { // (NEW)
+                    if($fb_output.val()){ $fb_output.removeAttr('placeholder'); }
+                    else { $fb_output.attr('placeholder', outputPlaceholder); }
+                 }
+            }
+
+            updateMainButtonText();
+        });
+
+
+        // ===========================================
+        // 7. 初始啟動
+        // ===========================================
+        loadSettings();
+        updateMainButtonText();
+        // 預設顯示第一個工具的 UI 和結果區
+        if (currentTool === 'content-improver') {
+            $ci_results.show();
+        } else if (currentTool === 'article-generator') {
+             $ag_results.show();
+        } else if (currentTool === 'fb-post') { // (NEW)
+             $fb_results.show();
+        }
+        switchTool(currentTool);
+
+      });
+    </script>
+  </body>
+</html>
+
